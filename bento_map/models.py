@@ -1,21 +1,29 @@
+from calendar import timegm
 from bento_map.settings import DATABASE_PROVIDER, DATABASE_COLLECTION, \
     DB_HOST_COLLECTION, HOST_COLLECTION, MAP_PROVIDER
 
 
-class Database(object):
+class Model(object):
+
+    def __init__(self, infra_name, name, created_at):
+        self.infra_name = infra_name
+        self.name = name
+        self.created_at = created_at
+        self.created_at_ts = timegm(self.created_at.timetuple())
+
+
+class Database(Model):
 
     def __init__(
             self, infra_name, name, engine, env, project, team, offering,
             created_at
     ):
-        self.infra_name = infra_name
-        self.name = name
+        super(Database, self).__init__(infra_name, name, created_at)
         self.engine = engine
         self.env = env
         self.project = project
         self.team = team
         self.offering = offering
-        self.created_at = created_at
 
     @property
     def content(self):
@@ -50,20 +58,17 @@ class Database(object):
                     }
                 },
                 "provider": DATABASE_PROVIDER,
-                "timestamp": self.created_at
+                "timestamp": self.created_at_ts
             },
             "type": "collections"
         }
 
 
-class Host(object):
+class Host(Model):
 
     def __init__(self, infra_name, name, identifier, created_at):
-        self.infra_name = infra_name
-        self.name = name
+        super(Host, self).__init__(infra_name, name, created_at)
         self.identifier = identifier
-        self.created_at = created_at
-
 
     @property
     def content(self):
@@ -77,7 +82,7 @@ class Host(object):
                 "id": self.name,
                 "name": self.name,
                 "provider": DATABASE_PROVIDER,
-                "timestamp": self.created_at,
+                "timestamp": self.created_at_ts,
                 "to": "{}/{}_{}".format(
                     HOST_COLLECTION, MAP_PROVIDER, self.identifier
                 )

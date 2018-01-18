@@ -1,4 +1,5 @@
 from unittest import TestCase
+from calendar import timegm
 from datetime import datetime
 from bento_map.models import Database, Host
 from bento_map.settings import DATABASE_PROVIDER, DATABASE_COLLECTION, \
@@ -45,7 +46,7 @@ class TestCreateDatabase(TestCase):
                     }
                 },
                 "provider": DATABASE_PROVIDER,
-                "timestamp": created_at
+                "timestamp": timegm(created_at.timetuple()),
             },
             "type": "collections"
         }
@@ -81,7 +82,7 @@ class TestCreateDatabaseCompUnit(TestCase):
                 "id": name,
                 "name": name,
                 "provider": DATABASE_PROVIDER,
-                "timestamp": created_at,
+                "timestamp": timegm(created_at.timetuple()),
                 "to": "{}/{}_{}".format(
                     HOST_COLLECTION, MAP_PROVIDER, identifier
                 )
