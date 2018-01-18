@@ -26,10 +26,15 @@ class Database(Model):
         self.offering = offering
 
     @property
+    def collection(self):
+        return DATABASE_COLLECTION
+
+    @property
     def content(self):
         return {
-            "action": "CREATE",
-            "collection": DATABASE_COLLECTION,
+            "action": "UPDATE",
+            "collection": self.collection,
+            "key": self.key,
             "element": {
                 "id": self.infra_name,
                 "name": self.name,
@@ -60,8 +65,18 @@ class Database(Model):
                 "provider": DATABASE_PROVIDER,
                 "timestamp": self.created_at_ts
             },
-            "type": "collections"
+            "type": self.type
         }
+
+    @property
+    def key(self):
+        return "{}/{}_{}".format(
+            DATABASE_COLLECTION, DATABASE_PROVIDER, self.infra_name
+        )
+
+    @property
+    def type(self):
+        return "collections"
 
 
 class Host(Model):
@@ -71,10 +86,19 @@ class Host(Model):
         self.identifier = identifier
 
     @property
+    def collection(self):
+        return DB_HOST_COLLECTION
+
+    @property
+    def type(self):
+        return "edges"
+
+    @property
     def content(self):
         return {
-            "action": "CREATE",
-            "collection": DB_HOST_COLLECTION,
+            "action": "UPDATE",
+            "collection": self.collection,
+            "key": self.key,
             "element": {
                 "from": "{}/{}_{}".format(
                     DATABASE_COLLECTION, DATABASE_PROVIDER, self.infra_name
@@ -87,5 +111,11 @@ class Host(Model):
                     HOST_COLLECTION, MAP_PROVIDER, self.identifier
                 )
             },
-            "type": "edges"
+            "type": self.type
         }
+
+    @property
+    def key(self):
+        return "{}/{}_{}".format(
+            DB_HOST_COLLECTION, DATABASE_PROVIDER, self.name
+        )

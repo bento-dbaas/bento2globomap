@@ -16,8 +16,9 @@ class TestCreateDatabase(TestCase):
             identifier, name, engine, env, project, team, offering, created_at
         )
         base = {
-            "action": "CREATE",
+            "action": "UPDATE",
             "collection": DATABASE_COLLECTION,
+            "key": "{}/{}_{}".format(DATABASE_COLLECTION, DATABASE_PROVIDER, identifier),
             "element": {
                 "id": identifier,
                 "name": name,
@@ -73,8 +74,9 @@ class TestCreateDatabaseCompUnit(TestCase):
     ):
         host = Host(infra_name, name, identifier, created_at)
         base = {
-            "action": "CREATE",
+            "action": "UPDATE",
             "collection": DB_HOST_COLLECTION,
+            "key": "{}/{}_{}".format(DB_HOST_COLLECTION, DATABASE_PROVIDER, name),
             "element": {
                 "from": "{}/{}_{}".format(
                     DATABASE_COLLECTION, DATABASE_PROVIDER, infra_name
