@@ -1,9 +1,27 @@
 from unittest import TestCase
 from calendar import timegm
 from datetime import datetime
-from bento_map.models import Database, Host
+from bento_map.models import BaseModel, Database, Host
 from bento_map.settings import DATABASE_PROVIDER, DATABASE_COLLECTION, \
     DB_HOST_COLLECTION, HOST_COLLECTION, MAP_PROVIDER
+
+
+class TestBaseModel(TestCase):
+
+    def test_not_implemented(self):
+        base = BaseModel("fake12345", "fake", datetime(2018, 2, 15, 17, 35, 1))
+
+        with self.assertRaises(NotImplementedError):
+            _ = base.collection
+
+        with self.assertRaises(NotImplementedError):
+            _ = base.key
+
+        with self.assertRaises(NotImplementedError):
+            _ = base.element
+
+        with self.assertRaises(NotImplementedError):
+            _ = base.type
 
 
 class TestCreateDatabase(TestCase):
