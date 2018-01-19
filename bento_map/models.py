@@ -104,6 +104,8 @@ class Host(BaseModel):
     def __init__(self, infra_name, name, identifier, created_at):
         super(Host, self).__init__(infra_name, name, created_at)
         self.identifier = identifier
+        self.full_name = self.name
+        self.name = name.split(".", maxsplit=1)[0]
 
     @property
     def collection(self):

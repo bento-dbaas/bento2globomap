@@ -91,6 +91,7 @@ class TestCreateDatabaseCompUnit(TestCase):
             self, infra_name, name, identifier, created_at
     ):
         host = Host(infra_name, name, identifier, created_at)
+        name = name.split(".", maxsplit=1)[0]
         base = {
             "action": "UPDATE",
             "collection": DB_HOST_COLLECTION,
@@ -113,16 +114,16 @@ class TestCreateDatabaseCompUnit(TestCase):
 
     def test_host_redis(self):
         self._test_content(
-            "fakeredis123456", "fakeredis-01-123456", "a76ax-b3bu-2cd4-cjjc",
-            datetime.now()
+            "fakeredis123456", "fakeredis-01-123456.domain.com",
+            "a76ax-b3bu-2cd4-cjjc", datetime.now()
         )
 
     def test_host_mysql(self):
         self._test_content(
-            "fakemysql889977", "fakemysql-01-889977", "a76ax-b3bb-2cd4-cd3c",
-            datetime(2018, 2, 15, 17, 30, 15)
+            "fakemysql889977", "fakemysql-01-889977.domain.com",
+            "a76ax-b3bb-2cd4-cd3c", datetime(2018, 2, 15, 17, 30, 15)
         )
         self._test_content(
-            "fakemysql889977", "fakemysql-02-889977", "a76aa-b3bb-2cc4-cd2c",
-            datetime(2018, 2, 15, 17, 33, 13)
+            "fakemysql889977", "fakemysql-02-889977.domain.com",
+            "a76aa-b3bb-2cc4-cd2c", datetime(2018, 2, 15, 17, 33, 13)
         )
