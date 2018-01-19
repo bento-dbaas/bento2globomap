@@ -1,14 +1,19 @@
 from datetime import datetime
 from unittest import TestCase
 from unittest.mock import patch
+from json import dumps
 from requests import Response
 from bento_map.loader import build_clear_to, build_model_payload, \
-    build_full_payload, update, notify_bot
+    build_full_payload, update, notify_bot, get_job_status
 from bento_map.models import Host, Database
 from bento_map.settings import MAP_ENDPOINT, BOT_ENDPOINT
 
 
 class TestLoader(TestCase):
+
+    def _dict_to_binary(self, dictionary):
+        content = dumps(dictionary)
+        return content.encode()
 
     def test_build_clear(self):
         build = build_clear_to({"fake": "edge", "bento": "collection"}, 1000)
@@ -36,7 +41,8 @@ class TestLoader(TestCase):
     def _build_models(self):
         date = datetime.now()
         database = Database(
-            "fake12345", "fake", "cassandra", "qa", "heroes", "dc", "strong", date
+            "fake12345", "fake", "cassandra", "qa", "heroes", "dc", "strong",
+            date
         )
         host_1 = Host(
             "fake12345", "fake-01-12345", "1234-4321-1234-4321", date
@@ -88,9 +94,13 @@ class TestLoader(TestCase):
 
     @patch("bento_map.loader.post")
     def test_update_content(self, post):
+        job_id = "123-456-789"
+        expected = {
+            "jobid": job_id, "message": "Updates published successfully"
+        }
         response = Response()
         response.status_code = 202
-        response._content = b'{"jobid": "123-456-789", "message": "Updates published successfully"}'
+        response._content = self._dict_to_binary(expected)
         post.return_value = response
 
         before = 88888
@@ -100,25 +110,28 @@ class TestLoader(TestCase):
         success, generated_job_id = update(models, before)
 
         self.assertTrue(success)
-        self.assertEqual("123-456-789", generated_job_id)
+        self.assertEqual(job_id, generated_job_id)
         post.assert_called_once_with(
             MAP_ENDPOINT + "/v1/updates", json=content
         )
 
     @patch("bento_map.loader.post")
     def test_update_error(self, post):
+        expected = {
+            "errors": [{
+                "error_pointer": "#/", "error_reasons": ["Wrong type"]
+            }]
+        }
         response = Response()
         response.status_code = 400
-        response._content = b'{"errors": [{"error_pointer": "#/", "error_reasons": ["Wrong type"]}]}'
+        response._content = self._dict_to_binary(expected)
         post.return_value = response
 
         models = self._build_models()
         success, error = update(models, 8888)
 
         self.assertFalse(success)
-        self.assertEqual(
-            [{"error_pointer": "#/", "error_reasons": ["Wrong type"]}], error
-        )
+        self.assertEqual(expected["errors"], error)
 
     @patch("bento_map.loader.post")
     def test_bot_notify(self, post):
@@ -129,4 +142,54 @@ class TestLoader(TestCase):
         notify_bot(error)
         post.assert_called_once_with(
             BOT_ENDPOINT + "/notify", json=expected
+        )
+
+    def _validated_get_job_status(
+            self, get, completed, errors, status_code
+    ):
+        job_id = "123456-9959-0050-7777123"
+        expected = {
+            "completed": completed,
+            "errors": errors,
+            "uuid": job_id
+        }
+
+        response = Response()
+        response.status_code = status_code
+        response._content = self._dict_to_binary(expected)
+        get.return_value = response
+
+        response = get_job_status(job_id)
+        self.assertEqual(response, completed)
+
+        get.assert_called_once_with(
+            MAP_ENDPOINT + "/v1/updates/job/{}".format(job_id)
+        )
+
+    @patch("bento_map.loader.get")
+    def test_get_job_status(self, get):
+        self._validated_get_job_status(get, True, [], 200)
+
+    @patch("bento_map.loader.get")
+    @patch("bento_map.loader.notify_bot")
+    def test_get_job_status_error_running(self, notify_bot, get):
+        self._validated_get_job_status(get, False, ["Fake", "error"], 200)
+        notify_bot.assert_not_called()
+
+    @patch("bento_map.loader.get")
+    @patch("bento_map.loader.notify_bot")
+    def test_get_job_status_error_completed(self, notify_bot, get):
+        errors = ["Fake", "error"]
+        self._validated_get_job_status(get, True, errors, 200)
+        notify_bot.assert_called_once_with(errors)
+
+    @patch("bento_map.loader.get")
+    @patch("bento_map.loader.notify_bot")
+    def test_get_job_status_api_error(self, notify_bot, get):
+        errors = ["Fake", "error"]
+        self._validated_get_job_status(get, True, errors, 404)
+        notify_bot.assert_called_once_with(
+            "{} - {}".format(
+                get.return_value.status_code, get.return_value.content
+            )
         )

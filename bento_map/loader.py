@@ -1,4 +1,4 @@
-from requests import post
+from requests import get, post
 from bento_map.settings import MAP_ENDPOINT, BOT_ENDPOINT
 
 
@@ -51,3 +51,19 @@ def update(models, before):
 def notify_bot(error):
     json = {"message": "Error sending content to Map: {}".format(error)}
     return post(BOT_ENDPOINT + "/notify", json=json)
+
+
+def get_job_status(job_id):
+    url = MAP_ENDPOINT + "/v1/updates/job/{}".format(job_id)
+    response = get(url)
+
+    if not response.ok:
+        notify_bot("{} - {}".format(response.status_code, response.content))
+        return True
+
+    json = response.json()
+    errors = json["errors"]
+    if json["completed"] and errors:
+        notify_bot(errors)
+
+    return json["completed"]
