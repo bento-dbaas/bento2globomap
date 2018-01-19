@@ -3,9 +3,9 @@ from unittest import TestCase
 from unittest.mock import patch
 from requests import Response
 from bento_map.loader import build_clear_to, build_model_payload, \
-    build_full_payload, update
+    build_full_payload, update, notify_bot
 from bento_map.models import Host, Database
-from bento_map.settings import MAP_ENDPOINT
+from bento_map.settings import MAP_ENDPOINT, BOT_ENDPOINT
 
 
 class TestLoader(TestCase):
@@ -118,4 +118,15 @@ class TestLoader(TestCase):
         self.assertFalse(success)
         self.assertEqual(
             [{"error_pointer": "#/", "error_reasons": ["Wrong type"]}], error
+        )
+
+    @patch("bento_map.loader.post")
+    def test_bot_notify(self, post):
+        error = "Fake test"
+        expected = {
+            "message": "Error sending content to Map: {}".format(error)
+        }
+        notify_bot(error)
+        post.assert_called_once_with(
+            BOT_ENDPOINT + "/notify", json=expected
         )

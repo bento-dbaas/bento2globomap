@@ -1,5 +1,5 @@
 from requests import post
-from bento_map.settings import MAP_ENDPOINT
+from bento_map.settings import MAP_ENDPOINT, BOT_ENDPOINT
 
 
 def build_clear_to(collections, before):
@@ -44,4 +44,10 @@ def update(models, before):
         return True, response_json["jobid"]
 
     error = response_json["errors"]
+    notify_bot(error)
     return False, error
+
+
+def notify_bot(error):
+    json = {"message": "Error sending content to Map: {}".format(error)}
+    return post(BOT_ENDPOINT + "/notify", json=json)
