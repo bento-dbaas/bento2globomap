@@ -1,10 +1,10 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from unittest import TestCase
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 from json import dumps
 from requests import Response
 from bento_map.loader import build_clear_to, build_model_payload, \
-    build_full_payload, update, notify_bot, get_job_status
+    build_full_payload, update, notify_bot, get_job_status, wait_job_be_done
 from bento_map.models import Host, Database
 from bento_map.settings import MAP_ENDPOINT, BOT_ENDPOINT
 
@@ -193,3 +193,18 @@ class TestLoader(TestCase):
                 get.return_value.status_code, get.return_value.content
             )
         )
+
+    @patch("bento_map.loader.get_job_status")
+    def test_wait_job_be_done(self, job_status):
+        job_id = "12345"
+        job_status.return_value = True
+        wait_job_be_done(job_id, 2, 1)
+
+    @patch("bento_map.loader.get_job_status")
+    @patch("bento_map.loader.datetime")
+    @patch("bento_map.loader.sleep", new=MagicMock)
+    def test_wait_job_be_done_timeout(self, datetime_mock, job_status):
+        job_status.return_value = False
+        now = datetime.now()
+        datetime_mock.now.side_effect = [now, now, now + timedelta(seconds=1)]
+        wait_job_be_done("job_id", 1, 1)

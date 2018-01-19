@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta
+from time import sleep
 from requests import get, post
 from bento_map.settings import MAP_ENDPOINT, BOT_ENDPOINT
 
@@ -67,3 +69,13 @@ def get_job_status(job_id):
         notify_bot(errors)
 
     return json["completed"]
+
+
+def wait_job_be_done(job_id, timeout_second=1800, wait=15):
+    end_at = datetime.now() + timedelta(seconds=timeout_second)
+    while end_at > datetime.now():
+        done = get_job_status(job_id)
+        if done:
+            break
+
+        sleep(wait)
