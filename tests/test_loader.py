@@ -1,6 +1,7 @@
 from datetime import datetime
 from unittest import TestCase
 from unittest.mock import patch
+from requests import Response
 from bento_map.loader import build_clear_to, build_model_payload, \
     build_full_payload, update
 from bento_map.models import Host, Database
@@ -86,16 +87,35 @@ class TestLoader(TestCase):
         self._validated_clear_content(content[4], 5000)
 
     @patch("bento_map.loader.post")
-    def test_update(self, post):
-        post.return_value = 202
+    def test_update_content(self, post):
+        response = Response()
+        response.status_code = 202
+        response._content = b'{"jobid": "123-456-789", "message": "Updates published successfully"}'
+        post.return_value = response
 
         before = 88888
-        models = [self._build_models()[0]]
-        result = update(models, before)
-
+        models = self._build_models()
         content = build_full_payload(models, before)
 
-        self.assertEqual(post.return_value, result)
+        success, generated_job_id = update(models, before)
+
+        self.assertTrue(success)
+        self.assertEqual("123-456-789", generated_job_id)
         post.assert_called_once_with(
             MAP_ENDPOINT + "/v1/updates", json=content
+        )
+
+    @patch("bento_map.loader.post")
+    def test_update_error(self, post):
+        response = Response()
+        response.status_code = 400
+        response._content = b'{"errors": [{"error_pointer": "#/", "error_reasons": ["Wrong type"]}]}'
+        post.return_value = response
+
+        models = self._build_models()
+        success, error = update(models, 8888)
+
+        self.assertFalse(success)
+        self.assertEqual(
+            [{"error_pointer": "#/", "error_reasons": ["Wrong type"]}], error
         )

@@ -37,4 +37,11 @@ def build_full_payload(models, before):
 def update(models, before):
     content = build_full_payload(models, before)
     url = MAP_ENDPOINT + "/v1/updates"
-    return post(url, json=content)
+    response = post(url, json=content)
+    response_json = response.json()
+
+    if response.ok:
+        return True, response_json["jobid"]
+
+    error = response_json["errors"]
+    return False, error
