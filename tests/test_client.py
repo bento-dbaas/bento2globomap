@@ -1,4 +1,5 @@
 from copy import deepcopy
+from datetime import datetime
 from unittest import TestCase
 from unittest.mock import patch
 from bento_map.client import Client
@@ -45,7 +46,7 @@ class ClientTestCase(TestCase):
     @patch('bento_map.client.requests.get',
            side_effect=fake_full_get)
     def test_get_hosts(self, get_mock):
-        hosts = self.client.get()
+        hosts = self.client.get(datetime.now())
 
         host1 = next(hosts)
         host2 = next(hosts)
@@ -60,7 +61,7 @@ class ClientTestCase(TestCase):
     @patch('bento_map.client.requests.get',
            side_effect=fake_small_get)
     def test_pagination(self, get_mock):
-        hosts = self.client.get()
+        hosts = self.client.get(datetime.now())
         host1 = next(hosts)
         host2 = next(hosts)
 
