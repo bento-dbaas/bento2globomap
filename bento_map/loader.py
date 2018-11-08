@@ -1,81 +1,45 @@
-from datetime import datetime, timedelta
-from time import sleep
-from requests import get, post
-from bento_map.settings import MAP_ENDPOINT, BOT_ENDPOINT
+from requests import post
+from globomap_loader_api_client.auth import Auth
+from globomap_loader_api_client.update import Update
+from bento_map.settings import MAP_ENDPOINT, MAP_USERNAME, MAP_PASSWORD, \
+    BOT_ENDPOINT, DATABASE_PROVIDER
 
 
-def build_clear_to(collections, before):
-    content = []
-    for collection, map_type in collections.items():
-        content.append({
+class Loader(object):
+    def __init__(self):
+        self.auth = Auth(
+            api_url=MAP_ENDPOINT,
+            username=MAP_USERNAME,
+            password=MAP_PASSWORD
+        )
+        self.provider = DATABASE_PROVIDER
+
+    def clear_old_data(self, model, before):
+        content = {
             "action": "CLEAR",
-            "collection": collection,
+            "collection": model.collection,
             "element": [[{
                 "field": "timestamp",
                 "operator": "<",
-                "value": before - 1
+                "value": before
             }]],
-            "type": map_type
-        })
-    return content
+            "type": model.type
+        }
+        return self.__execute(content)
 
+    def update(self, model):
+        return self.__execute(model.content)
 
-def build_model_payload(models):
-    content = []
-    collections = {}
-    for model in models:
-        content.append(model.content)
-        collections[model.collection] = model.type
+    def __execute(self, content):
+        try:
+            print(content)
+            update = Update(auth=self.auth, driver_name=self.provider)
+            return update.post(content)
+        except Exception as e:
+            self.notify_bot(str(e))
+            raise e
 
-    return content, collections
-
-
-def build_full_payload(models, before):
-    content, collections = build_model_payload(models)
-    content += build_clear_to(collections, before)
-    return content
-
-
-def update(models, before):
-    content = build_full_payload(models, before)
-    url = MAP_ENDPOINT + "/v1/updates"
-    response = post(url, json=content)
-    response_json = response.json()
-
-    if response.ok:
-        return True, response_json["jobid"]
-
-    error = response_json["errors"]
-    notify_bot(error)
-    return False, error
-
-
-def notify_bot(error):
-    json = {"message": "Error sending content to Map: {}".format(error)}
-    return post(BOT_ENDPOINT + "/notify", json=json)
-
-
-def get_job_status(job_id):
-    url = MAP_ENDPOINT + "/v1/updates/job/{}".format(job_id)
-    response = get(url)
-
-    if not response.ok:
-        notify_bot("{} - {}".format(response.status_code, response.content))
-        return True
-
-    json = response.json()
-    errors = json["errors"]
-    if json["completed"] and errors:
-        notify_bot(errors)
-
-    return json["completed"]
-
-
-def wait_job_be_done(job_id, timeout_second=1800, wait=15):
-    end_at = datetime.now() + timedelta(seconds=timeout_second)
-    while end_at > datetime.now():
-        done = get_job_status(job_id)
-        if done:
-            break
-
-        sleep(wait)
+    @staticmethod
+    def notify_bot(error):
+        json = {"message": "Error sending content to Map: {}".format(error)}
+        return post(BOT_ENDPOINT + "/notify", json=json)
