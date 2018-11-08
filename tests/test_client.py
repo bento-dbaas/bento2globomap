@@ -48,10 +48,10 @@ class ClientTestCase(TestCase):
         next(hosts)
         host2 = next(hosts)
 
-        self.assertEqual(host1.infra_name, 'fake_infra_name1')
+        self.assertEqual(host1.infra_name, 'infra_name1')
         self.assertEqual(host1.name, 'fake_hostname1')
         self.assertEqual(host1.identifier, 'fake_identifier1')
-        self.assertEqual(host2.infra_name, 'fake_infra_name2')
+        self.assertEqual(host2.infra_name, 'infra_name2')
         self.assertEqual(host2.name, 'fake_hostname2')
         self.assertEqual(host2.identifier, 'fake_identifier2')
 
@@ -62,9 +62,9 @@ class ClientTestCase(TestCase):
         next(hosts)
         host2 = next(hosts)
 
-        self.assertEqual(host1.infra_name, 'fake_infra_name1')
+        self.assertEqual(host1.infra_name, 'infra_name1')
         self.assertEqual(host1.name, 'fake_hostname1')
         self.assertEqual(host1.identifier, 'fake_identifier1')
-        self.assertEqual(host2.infra_name, 'fake_infra_name1_page2')
-        self.assertEqual(host2.name, 'fake_hostname1_page2')
-        self.assertEqual(host2.identifier, 'fake_identifier1_page2')
+        self.assertEqual(host2.infra_name, 'infra_name11')
+        self.assertEqual(host2.name, 'fake_hostname11')
+        self.assertEqual(host2.identifier, 'fake_identifier11')
