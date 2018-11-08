@@ -20,20 +20,17 @@ class FakeResponse(object):
 
 
 def fake_full_get(*args, **kw):
-    page = kw.get('params', {}).get('page')
-
+    page = args[1].get('page')
     return fake_get('full', page)
 
 
 def fake_small_get(*args, **kw):
-    page = kw.get('params', {}).get('page')
-
+    page = args[1].get('page')
     return fake_get('small', page)
 
 
 def fake_get(size, page):
     fake_resp = deepcopy(globals()['HOST_API_PAGE_{}'.format(page)])
-
     if size == 'small':
         fake_resp['host'] = fake_resp['host'][:1]
     return FakeResponse(fake_resp)
@@ -43,12 +40,12 @@ class ClientTestCase(TestCase):
     def setUp(self):
         self.client = Client()
 
-    @patch('bento_map.client.requests.get',
-           side_effect=fake_full_get)
+    @patch('bento_map.client.requests.get', side_effect=fake_full_get)
     def test_get_hosts(self, get_mock):
         hosts = self.client.get(datetime.now())
 
         host1 = next(hosts)
+        next(hosts)
         host2 = next(hosts)
 
         self.assertEqual(host1.infra_name, 'fake_infra_name1')
@@ -58,11 +55,11 @@ class ClientTestCase(TestCase):
         self.assertEqual(host2.name, 'fake_hostname2')
         self.assertEqual(host2.identifier, 'fake_identifier2')
 
-    @patch('bento_map.client.requests.get',
-           side_effect=fake_small_get)
+    @patch('bento_map.client.requests.get', side_effect=fake_small_get)
     def test_pagination(self, get_mock):
         hosts = self.client.get(datetime.now())
         host1 = next(hosts)
+        next(hosts)
         host2 = next(hosts)
 
         self.assertEqual(host1.infra_name, 'fake_infra_name1')

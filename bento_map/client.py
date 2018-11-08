@@ -56,7 +56,6 @@ class Client(object):
                     base_date
                 )
 
-            has_more = False
             if resp['_links']['next'] is None:
                 has_more = False
 
