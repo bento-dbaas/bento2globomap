@@ -4,7 +4,7 @@ from calendar import timegm
 from datetime import datetime
 from bento_map.settings import BENTO_ENDPOINT, HOST_PROVIDER_ENDPOINT, \
     HOST_PROVIDER_USER, HOST_PROVIDER_PASSWORD
-from bento_map.models import Database, Host
+from bento_map.models import Database, Host, Tsuru
 from bento_map.loader import Loader
 
 
@@ -14,7 +14,8 @@ class Client(object):
         self.databases = {}
 
     def _get(self, page=1):
-        url = BENTO_ENDPOINT + '/api/host/'
+        url = BENTO_ENDPOINT + 'api/host/'
+        print("Loading {}{}".format(url, page))
         resp = requests.get(
             url, {'page': page, 'format': 'json'}, verify=False
         )
@@ -36,7 +37,7 @@ class Client(object):
                 database = host.get('database', {})
                 infra = database.get('infra', {})
                 identifier = HostProvider.info(
-                    "cloudstack", host.get('env_name'), host.get('identifier'),
+                    host.get('env_name'), host.get('identifier'),
                 )["identifier"]
                 yield Host(
                     infra.get('name'),
@@ -44,11 +45,9 @@ class Client(object):
                     identifier,
                     base_date,
                 )
-
                 db_env = database['name'] + host.get('env_name')
                 if db_env in self.databases:
                     continue
-
                 self.databases[db_env] = True
                 yield Database(
                     infra.get('name'),
@@ -60,6 +59,10 @@ class Client(object):
                     host.get('offering').get('type'),
                     base_date
                 )
+                yield Tsuru(
+                    infra.get('name'), database.get('name'), base_date,
+                    host.get('env_name')
+                )
 
             if resp['_links']['next'] is None:
                 has_more = False
@@ -70,25 +73,24 @@ class Client(object):
         loader = Loader()
         clear = {}
         for item in self.get(timestamp):
-            print(loader.update(item))
+            loader.update(item)
             clear[item.collection] = item
         for collection in clear.values():
-            print(loader.clear_old_data(collection, timestamp-1))
+            loader.clear_old_data(collection, timestamp-1)
 
 
 class HostProvider(object):
 
     @classmethod
-    def info(cls, provider, environment, identifier):
-        url = '{}/{}/{}/host/{}'.format(
-            HOST_PROVIDER_ENDPOINT, provider, environment, identifier
+    def info(cls, environment, identifier):
+        url = '{}/all/{}/host/{}'.format(
+            HOST_PROVIDER_ENDPOINT, environment, identifier
         )
         auth = None
         if HOST_PROVIDER_USER:
             auth = HTTPBasicAuth(HOST_PROVIDER_USER, HOST_PROVIDER_PASSWORD)
         response = requests.get(url, auth=auth, verify=False)
         if response.ok:
-            print(response.json())
             return response.json()
         raise EnvironmentError(
             "Could not load info about host: \n{}\n{}-{}".format(

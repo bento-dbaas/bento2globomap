@@ -34,7 +34,9 @@ class Loader(object):
         try:
             print(content)
             update = Update(auth=self.auth, driver_name=self.provider)
-            return update.post(content)
+            response = update.post(content)
+            print(response)
+            return response
         except Exception as e:
             self.notify_bot(str(e))
             raise e

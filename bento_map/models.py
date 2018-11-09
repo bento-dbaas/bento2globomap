@@ -1,5 +1,6 @@
 from bento_map.settings import DATABASE_PROVIDER, DATABASE_COLLECTION, \
-    DB_HOST_COLLECTION, HOST_COLLECTION, MAP_PROVIDER, DB_TSURU_COLLECTION
+    DB_HOST_COLLECTION, HOST_COLLECTION, MAP_PROVIDER, \
+    TSURU_SERVICE_COLLECTION, DB_TSURU_COLLECTION, TSURU_PRODUCTION_ENVIRONMENT
 
 
 class BaseModel(object):
@@ -55,8 +56,7 @@ class Database(BaseModel):
 
     @property
     def key(self):
-        return "{}_{}".format(
-            DATABASE_COLLECTION, DATABASE_PROVIDER, self.infra_name
+        return "{}_{}".format(DATABASE_PROVIDER, self.infra_name
         )
 
     @property
@@ -130,17 +130,15 @@ class Host(BaseModel):
 
     @property
     def key(self):
-        return "{}_{}".format(
-            DB_HOST_COLLECTION, DATABASE_PROVIDER, self.name
-        )
+        return "{}_{}".format(DATABASE_PROVIDER, self.name)
+
 
 class Tsuru(BaseModel):
 
-    def __init__(self, infra_name, name, identifier, timestamp):
-        super(Tsuru, self).__init__(infra_name, name, timestamp)
-        self.identifier = identifier
-        self.full_name = self.name
-        self.name = name.split(".", maxsplit=1)[0]
+    def __init__(self, infra_name, db_name, timestamp, environment):
+        super(Tsuru, self).__init__(infra_name, db_name, timestamp)
+        self.name = db_name
+        self.environment = environment
 
     @property
     def collection(self):
@@ -152,6 +150,10 @@ class Tsuru(BaseModel):
 
     @property
     def element(self):
+        provider = self.environment.replace(TSURU_PRODUCTION_ENVIRONMENT, '')
+        if provider:
+            provider = '-' + provider
+        provider = 'tsuru_tsuru-dbaas' + provider
         return {
             "from": "{}/{}_{}".format(
                 DATABASE_COLLECTION, DATABASE_PROVIDER, self.infra_name
@@ -161,12 +163,10 @@ class Tsuru(BaseModel):
             "provider": DATABASE_PROVIDER,
             "timestamp": self.timestamp,
             "to": "{}/{}_{}".format(
-                HOST_COLLECTION, MAP_PROVIDER, self.identifier
+                TSURU_SERVICE_COLLECTION, provider, self.name
             )
         }
 
     @property
     def key(self):
-        return "{}_{}".format(
-            DB_HOST_COLLECTION, DATABASE_PROVIDER, self.name
-        )
+        return "{}_{}".format(DATABASE_PROVIDER, self.name)
