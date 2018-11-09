@@ -1,3 +1,4 @@
+from logging import info
 import requests
 from requests.auth import HTTPBasicAuth
 from calendar import timegm
@@ -15,7 +16,7 @@ class Client(object):
 
     def _get(self, page=1):
         url = BENTO_ENDPOINT + 'api/host/'
-        print("Loading {}{}".format(url, page))
+        info("Loading {}{}".format(url, page))
         resp = requests.get(
             url, {'page': page, 'format': 'json'}, verify=False
         )

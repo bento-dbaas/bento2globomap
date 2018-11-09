@@ -1,13 +1,18 @@
+from logging import info, basicConfig, getLogger, INFO
 from time import sleep
 from bento_map.client import Client
 
 
+basicConfig()
+getLogger().setLevel(INFO)
+
+
 def sync():
     while True:
-        print("Syncing data with Bento to Map")
+        info("Syncing data with Bento to Map")
         client = Client()
         client.send()
-        print("Done")
+        info("Done")
         sleep(60*15)
 
 

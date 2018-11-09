@@ -1,3 +1,4 @@
+from logging import info
 from requests import post
 from globomap_loader_api_client.auth import Auth
 from globomap_loader_api_client.update import Update
@@ -32,10 +33,10 @@ class Loader(object):
 
     def __execute(self, content):
         try:
-            print(content)
+            info(content)
             update = Update(auth=self.auth, driver_name=self.provider)
             response = update.post(content)
-            print(response)
+            info(response)
             return response
         except Exception as e:
             self.notify_bot(str(e))
