@@ -1,6 +1,7 @@
 from bento_map.settings import DATABASE_PROVIDER, DATABASE_COLLECTION, \
     DB_HOST_COLLECTION, HOST_COLLECTION, MAP_PROVIDER, \
-    TSURU_SERVICE_COLLECTION, DB_TSURU_COLLECTION, TSURU_PRODUCTION_ENVIRONMENT
+    TSURU_SERVICE_COLLECTION, DB_TSURU_COLLECTION, TSURU_SERIVCE_BASE_NAME,\
+    TSURU_PRODUCTION_ENVIRONMENT
 
 
 class BaseModel(object):
@@ -153,7 +154,7 @@ class Tsuru(BaseModel):
         provider = self.environment.replace(TSURU_PRODUCTION_ENVIRONMENT, '')
         if provider:
             provider = '-' + provider
-        provider = 'tsuru_tsuru-dbaas' + provider
+        provider = TSURU_SERIVCE_BASE_NAME + provider
         return {
             "from": "{}/{}_{}".format(
                 DATABASE_COLLECTION, DATABASE_PROVIDER, self.infra_name
