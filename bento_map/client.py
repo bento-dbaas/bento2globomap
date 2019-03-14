@@ -1,10 +1,12 @@
+from logging import info
 import requests
+from requests.auth import HTTPBasicAuth
 from calendar import timegm
 from datetime import datetime
-from bento_map.settings import BENTO_ENDPOINT
-from bento_map.models import Database, Host
-from bento_map.loader import update, wait_job_be_done
-
+from bento_map.settings import BENTO_ENDPOINT, HOST_PROVIDER_ENDPOINT, \
+    HOST_PROVIDER_USER, HOST_PROVIDER_PASSWORD
+from bento_map.models import Database, Host, Tsuru
+from bento_map.loader import Loader
 
 
 class Client(object):
@@ -13,9 +15,11 @@ class Client(object):
         self.databases = {}
 
     def _get(self, page=1):
-        url = BENTO_ENDPOINT + '/api/host/'
-        resp = requests.get(url, {'page': page, 'format': 'json'})
-
+        url = BENTO_ENDPOINT + 'api/host/'
+        info("Loading {}{}".format(url, page))
+        resp = requests.get(
+            url, {'page': page, 'format': 'json'}, verify=False
+        )
         if resp.ok:
             return resp.json()
 
@@ -33,17 +37,18 @@ class Client(object):
             for host in resp['host']:
                 database = host.get('database', {})
                 infra = database.get('infra', {})
+                identifier = HostProvider.info(
+                    host.get('env_name'), host.get('identifier'),
+                )["identifier"]
                 yield Host(
                     infra.get('name'),
                     host.get('hostname'),
-                    host.get('identifier'),
+                    identifier,
                     base_date,
                 )
-
                 db_env = database['name'] + host.get('env_name')
                 if db_env in self.databases:
                     continue
-
                 self.databases[db_env] = True
                 yield Database(
                     infra.get('name'),
@@ -55,33 +60,41 @@ class Client(object):
                     host.get('offering').get('type'),
                     base_date
                 )
+                yield Tsuru(
+                    infra.get('name'), database.get('name'), base_date,
+                    host.get('env_name')
+                )
 
             if resp['_links']['next'] is None:
                 has_more = False
-
             page += 1
 
-    def sent(self):
-        date = datetime.now()
-        date_ts = timegm(date.timetuple())
+    def send(self):
+        timestamp = timegm(datetime.now().timetuple())
+        loader = Loader()
+        clear = {}
+        for item in self.get(timestamp):
+            loader.update(item)
+            clear[item.collection] = item
+        for collection in clear.values():
+            loader.clear_old_data(collection, timestamp-1)
 
-        jobs = []
-        errors = []
-        for page in range(200):
-            print('Loading page:', page)
-            content = list(self.get(date, page))
-            print('  Done')
 
-            if not content:
-                break
+class HostProvider(object):
 
-            success, job_id = update(content, date_ts)
-            if success:
-                jobs.append(job_id)
-            else:
-                errors.append(job_id)
-
-        for job in jobs:
-            print('Waiting: ;', job)
-            wait_job_be_done(job)
-            print('  Done')
+    @classmethod
+    def info(cls, environment, identifier):
+        url = '{}/all/{}/host/{}'.format(
+            HOST_PROVIDER_ENDPOINT, environment, identifier
+        )
+        auth = None
+        if HOST_PROVIDER_USER:
+            auth = HTTPBasicAuth(HOST_PROVIDER_USER, HOST_PROVIDER_PASSWORD)
+        response = requests.get(url, auth=auth, verify=False)
+        if response.ok:
+            return response.json()
+        raise EnvironmentError(
+            "Could not load info about host: \n{}\n{}-{}".format(
+                url, response.status_code, response.content
+            )
+        )
